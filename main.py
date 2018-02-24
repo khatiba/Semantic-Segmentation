@@ -25,7 +25,8 @@ def load_vgg(sess, vgg_path):
     :return: Tuple of Tensors from VGG model (image_input, keep_prob, layer3_out, layer4_out, layer7_out)
     """
     vgg_tag = 'vgg16'
-    graph = tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
+    tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
+    graph = tf.get_default_graph()
 
     vgg_input_tensor_name       = 'image_input:0'
     vgg_keep_prob_tensor_name   = 'keep_prob:0'
@@ -52,8 +53,25 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :param num_classes: Number of classes to classify
     :return: The Tensor for the last layer of output
     """
-    # TODO: Implement function
-    return None
+
+    output = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides=(1, 1), padding='same',
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    layer4_upsample = tf.layers.conv2d_transpose(vgg_layer4_out, num_classes, 4, strides=(2, 2),
+                                        padding='same', kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    output = tf.add(output, layer4_upsample)
+    output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same',
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    layer3_upsample = tf.layers.conv2d_transpose(vgg_layer3_out, num_classes, 8, strides=(2, 2), padding='same',
+                                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    output = tf.add(output, layer3_upsample)
+    output = tf.layers.conv2d_transpose(output, num_classes, 16, strides=(2, 2), padding='same',
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    return output
 tests.test_layers(layers)
 
 
@@ -66,8 +84,12 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
-    # TODO: Implement function
-    return None, None, None
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=correct_label, logits=logits))
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+    train_op = optimizer.minimize(cross_entropy_loss)
+
+    return logits, train_op, cross_entropy_loss
 tests.test_optimize(optimize)
 
 
@@ -86,7 +108,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
-    # TODO: Implement function
+
     pass
 tests.test_train_nn(train_nn)
 
@@ -113,6 +135,10 @@ def run():
 
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
+
+        # input_tensor, keep_prob_tensor, layer3_out_tensor, layer4_out_tensor, layer7_out_tensor = load_vgg(sess, vgg_path)
+        # output = layers(layer3_out_tensor, layer4_out_tensor, layer7_out_tensor, num_classes)
+        # logits, train_op, cross_entropy_loss = optimize(output, )
 
         # TODO: Build NN using load_vgg, layers, and optimize function
 

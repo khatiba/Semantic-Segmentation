@@ -12,6 +12,8 @@ env/
 build/
 data/*
 !data/.gitkeep 
+saves/*
+!saves/.gitkeep 
 develop-eggs/
 dist/
 downloads/

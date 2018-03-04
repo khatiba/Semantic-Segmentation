@@ -54,25 +54,35 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
 
+    l2_reg = 1e-5
+
+    # vgg_layer7_out = tf.Print(vgg_layer7_out, [tf.shape(vgg_layer7_out)]);
     layer7_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides=(1, 1), padding='same',
-                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
 
+
+    # vgg_layer4_out = tf.Print(vgg_layer4_out, [tf.shape(vgg_layer4_out)]);
     layer4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides=(1, 1), padding='same',
-                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
 
+    # vgg_layer3_out = tf.Print(vgg_layer3_out, [tf.shape(vgg_layer3_out)]);
     layer3_1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides=(1, 1), padding='same',
-                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
+
 
     output = tf.layers.conv2d_transpose(layer7_1x1, num_classes, 4, strides=(2, 2), padding='same',
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
+    # output = tf.Print(output, [tf.shape(output)])
 
     output = tf.add(output, layer4_1x1)
     output = tf.layers.conv2d_transpose(output, num_classes, 4, strides=(2, 2), padding='same',
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
+    # output = tf.Print(output, [tf.shape(output)])
 
     output = tf.add(output, layer3_1x1)
-    output = tf.layers.conv2d_transpose(output, num_classes, 32, strides=(8, 8), padding='same',
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    output = tf.layers.conv2d_transpose(output, num_classes, 16, strides=(8, 8), padding='same',
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg))
+    # output = tf.Print(output, [tf.shape(output)])
 
     return output
 tests.test_layers(layers)
@@ -119,7 +129,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     for i in range(epochs):
         for image, label in get_batches_fn(batch_size):
             _, loss = sess.run([train_op, cross_entropy_loss],
-                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.5, learning_rate:1e-5})
+                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.5, learning_rate:1e-4})
 
         print('Epoch: {}, Loss: {}'.format(i, loss))
 
@@ -129,7 +139,7 @@ tests.test_train_nn(train_nn)
 
 
 def train():
-    batch_size = 5
+    batch_size = 4
     epochs = 20
     num_classes = 2
     image_shape = (160, 576)
@@ -164,11 +174,11 @@ def train():
         saver = tf.train.Saver()
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_tensor, correct_label, keep_prob_tensor, learning_rate, saver)
 
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob_tensor, input_tensor)
         # OPTIONAL: Apply the trained model to a video
 
 
 def run_inference_test():
-    batch_size = 4
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
@@ -188,7 +198,7 @@ def run_inference_test():
 
         sess.run(tf.global_variables_initializer())
         new_saver = tf.train.import_meta_graph('./saves/fcn.ckpt.meta')
-        new_saver.restore(sess, tf.train.latest_checkpoint('./saves'))
+        new_saver.restore(sess, './saves/fcn.ckpt') #tf.train.latest_checkpoint('./saves'))
 
         graph = tf.get_default_graph()
 
@@ -199,6 +209,7 @@ def run_inference_test():
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob_tensor, input_tensor)
 
 
-if __name__ == '__main__':
-    # run_inference_test()
-    train()
+# if __name__ == '__main__':
+#     run_inference_test()
+    # train()
+

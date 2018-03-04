@@ -12,8 +12,10 @@ env/
 build/
 data/*
 !data/.gitkeep 
-saves/*
-!saves/.gitkeep 
+kitti_saves/*
+!kitti_saves/.gitkeep 
+cityscape_saves/*
+!cityscape_saves/.gitkeep 
 runs/*
 !runs/.gitkeep 
 develop-eggs/
